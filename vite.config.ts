@@ -5,8 +5,18 @@ import { VitePWA } from 'vite-plugin-pwa'
 
 export default defineConfig({
   plugins: [react(),
-  VitePWA({registerType: 'autoUpdate'})
-],
+  VitePWA({
+    registerType: 'autoUpdate', manifest: {
+      name: "Uploadify",
+      short_name: "Uploadify",
+      start_url: "/",
+      display: "standalone",
+      background_color: "#09090b",
+      lang: "en",
+      scope: "/"
+    }
+  })
+  ],
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
