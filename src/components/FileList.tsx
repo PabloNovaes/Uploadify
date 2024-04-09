@@ -1,4 +1,4 @@
-import { FileContext } from "@/contexts/FilesContext";
+import { FileContext } from "@/contexts/filesContext";
 import { File, Image, Video } from "@phosphor-icons/react";
 import { Key, useContext } from "react";
 import { MediaModal } from "./MediaModal";

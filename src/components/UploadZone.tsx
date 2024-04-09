@@ -6,7 +6,7 @@ import { storage } from "../services/firebase/firebase.config";
 import { Input } from "./ui/input";
 
 
-import { FileContext } from "@/contexts/FilesContext";
+import { FileContext } from "@/contexts/filesContext";
 import { useContext, useState } from "react";
 import { Progress } from "./ui/progress";
 

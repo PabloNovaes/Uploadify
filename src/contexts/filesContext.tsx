@@ -29,7 +29,6 @@ const FileProvider = ({ children }: ChildrenProps) => {
 
     const listRef = ref(storage, 'files');
 
-
     useEffect(() => {
         const fetchFiles = async () => {
             try {
@@ -48,9 +47,7 @@ const FileProvider = ({ children }: ChildrenProps) => {
                     return { name: metadata.name, size: metadata.size, contentType: metadata.contentType, customMetadata: metadata.customMetadata, url };
                 });
     
-                console.time();
                 const filesData = await Promise.all(promises);
-                console.timeEnd();
     
                 localStorage.setItem("files", JSON.stringify(filesData));
                 setFiles(filesData);
