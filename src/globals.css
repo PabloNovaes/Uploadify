@@ -80,7 +80,7 @@
 }
 @layer base {
   * {
-    @apply border-border font-inter;
+    @apply border-border font-geist;
   }
   body {
     @apply bg-background text-foreground;
@@ -89,11 +89,17 @@
       @apply bg-primary-foreground;
     }
 
-    & #fileList {
-      max-height: calc(100dvh - 50dvh);
+    & #file-list {
+      max-height: calc(100dvh - 40dvh);
+      &::-webkit-scrollbar {
+        width: 4px;
+      }
+      &::-webkit-scrollbar-thumb {
+        @apply bg-primary-foreground rounded-full
+      }
     }
 
-    & .ellipsised-text{
+    & .ellipsised-text {
       overflow-y: hidden;
       display: -webkit-box;
       -webkit-line-clamp: 1;

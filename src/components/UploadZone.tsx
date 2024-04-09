@@ -1,14 +1,14 @@
 import { Upload } from "@phosphor-icons/react";
-import { UploadTask, getDownloadURL, ref, uploadBytesResumable } from "firebase/storage";
+import { UploadTask, getDownloadURL, getMetadata, ref, uploadBytesResumable } from "firebase/storage";
 import { useDropzone } from 'react-dropzone';
 import { toast } from "sonner";
-import { Input } from "../../components/ui/input";
-import { storage } from "../../services/firebase/firebase.config";
+import { storage } from "../services/firebase/firebase.config";
+import { Input } from "./ui/input";
 
 
-import { FileContext } from "@/contexts/filesContext";
+import { FileContext } from "@/contexts/FilesContext";
 import { useContext, useState } from "react";
-import { Progress } from "../ui/progress";
+import { Progress } from "./ui/progress";
 
 
 export function UploadZone() {
@@ -23,9 +23,13 @@ export function UploadZone() {
 
     const monitoringTask = {
         upload(file: File) {
+
             if (file) {
-                const path = ref(storage, `files/${file.name}`)
-                const task = uploadBytesResumable(path, file)
+                const { name, type } = file
+                const path = ref(storage, `files/${name}`)
+                const task = uploadBytesResumable(path, file, {
+                    contentType: type
+                })
 
                 setTask(task)
 
@@ -47,8 +51,9 @@ export function UploadZone() {
                         console.log(error);
 
                     }, () => {
-                        getDownloadURL(task.snapshot.ref).then(url => {
-                            context?.onUploadFile({ name: file.name, url })
+                        getDownloadURL(task.snapshot.ref).then(async (url) => {
+                            const { name, size, contentType, customMetadata } = await getMetadata((ref(storage, `files/${file.name}`)))
+                            context?.onUploadFile({ name, size, contentType, customMetadata, url })
                         })
                     })
 

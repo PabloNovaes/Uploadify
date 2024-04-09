@@ -1,6 +1,6 @@
 // FileContext.js
 import { storage } from "@/services/firebase/firebase.config";
-import { getDownloadURL, listAll, ref } from "firebase/storage";
+import { getDownloadURL, getMetadata, listAll, ref } from "firebase/storage";
 
 import { ReactNode, createContext, useEffect, useState } from 'react';
 
@@ -11,6 +11,9 @@ interface ChildrenProps {
 
 interface FileProps {
     name: string;
+    size: number;
+    contentType: string | undefined;
+    customMetadata: { [key: string]: string; } | undefined;
     url: string;
 }
 
@@ -26,39 +29,51 @@ const FileProvider = ({ children }: ChildrenProps) => {
 
     const listRef = ref(storage, 'files');
 
+
     useEffect(() => {
         const fetchFiles = async () => {
             try {
                 const res = await listAll(listRef);
-                const filesData: FileProps[] = [];
-
-                for (const file of res.items) {
-                    const fileRef = ref(storage, `files/${file.name}`);
-                    
-                    const url = await getDownloadURL(fileRef)
-                    filesData.push({ name: file.name, url: url });
+                const localFiles = localStorage.getItem("files") as string;
+    
+                if (JSON.parse(localFiles)?.length === res.items.length) {
+                    setFiles(JSON.parse(localFiles));
+                    return;
                 }
-
+    
+                const promises = res.items.map(async (file) => {
+                    const urlPromise = getDownloadURL(ref(storage, `files/${file.name}`));
+                    const metadataPromise = getMetadata(file);
+                    const [url, metadata] = await Promise.all([urlPromise, metadataPromise]);
+                    return { name: metadata.name, size: metadata.size, contentType: metadata.contentType, customMetadata: metadata.customMetadata, url };
+                });
+    
+                console.time();
+                const filesData = await Promise.all(promises);
+                console.timeEnd();
+    
+                localStorage.setItem("files", JSON.stringify(filesData));
                 setFiles(filesData);
             } catch (error) {
-                return error
+                console.error(error);
             }
         };
-
+    
         fetchFiles();
     }, []);
-
-
+    
     const onUploadFile = (file: FileProps) => {
-        setFiles([file, ...files]);
+        const updatedFiles = [file, ...files];
+        localStorage.setItem('files', JSON.stringify(updatedFiles));
+        setFiles(updatedFiles);
     };
-
-
+    
     return (
         <FileContext.Provider value={{ files, onUploadFile }}>
             {children}
         </FileContext.Provider>
     );
+    
 };
 
 export { FileContext, FileProvider };
