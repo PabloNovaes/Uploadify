@@ -1,18 +1,3 @@
-import { FileContext } from "@/contexts/filesContext";
-import { File, Image, Video } from "@phosphor-icons/react";
-import { Key, useContext } from "react";
-import { MediaModal } from "./MediaModal";
-
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuLabel,
-    DropdownMenuSeparator,
-    DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-
-
 import {
     Table,
     TableBody,
@@ -21,11 +6,21 @@ import {
     TableHeader,
     TableRow
 } from "@/components/ui/table";
-import { DotsThree, MagnifyingGlass } from "@phosphor-icons/react";
+import { FileContext } from "@/contexts/filesContext";
+import { CircleNotch, DownloadSimple, File, Image, MagnifyingGlass, Video } from "@phosphor-icons/react";
+import { useContext, useState } from "react";
+import { MediaModal } from "./MediaModal";
+import { Button } from "./ui/button.js";
 import { Skeleton } from "./ui/skeleton";
 
+// Interface para definir a estrutura do estado downloading
+interface DownloadingState {
+    [key: string]: boolean;
+}
+
 export function FileList() {
-    const context = useContext(FileContext)
+    const context = useContext(FileContext);
+    const [downloading, setDownloading] = useState<DownloadingState>({}); // Use a interface como tipo do estado
 
     const sizeFormatter = (bytes: number) => {
         const kilobyte = 1024;
@@ -41,7 +36,27 @@ export function FileList() {
         } else {
             return (bytes / gigabyte).toFixed(1) + ' GB';
         }
-    }
+    };
+
+    const downloadUrl = async (url: string, name: string) => {
+        try {
+            setDownloading(prevDownloading => ({
+                ...prevDownloading,
+                [name]: true,
+            }));
+            const res = await fetch(url);
+            const blob = await res.blob();
+
+            return URL.createObjectURL(blob);
+        } catch (error) {
+            console.log(error);
+        } finally {
+            setDownloading(prevDownloading => ({
+                ...prevDownloading,
+                [name]: false,
+            }));
+        }
+    };
 
     return (
         <>
@@ -54,20 +69,20 @@ export function FileList() {
                     <TableRow>
                         <TableHead className={`${context?.files.length === 0 && 'w-full'}`}>File</TableHead>
                         <TableHead className={`${context?.files.length !== 0 && 'w-[80px]'}`}>Size</TableHead>
-                        <TableHead className="text-right">Action</TableHead>
+                        <TableHead className="text-center">Action</TableHead>
                     </TableRow>
                 </TableHeader>
                 <TableBody>
-                    {context?.files.length === 0 && Array.from({ length: 4 }).map((indx)=>(
-                        <TableRow key={indx as Key}>
+                    {context?.files.length === 0 && Array.from({ length: 4 }).map(() => (
+                        <TableRow key={crypto.randomUUID()}>
                             <TableCell>
-                                <Skeleton className="h-5 w-full rounded"/>
+                                <Skeleton className="h-5 w-full rounded" />
                             </TableCell>
                             <TableCell>
-                                <Skeleton className="h-5 w-full rounded"/>
+                                <Skeleton className="h-5 w-full rounded" />
                             </TableCell>
                             <TableCell>
-                                <Skeleton className="h-5 w-full rounded"/>
+                                <Skeleton className="h-5 w-full rounded" />
                             </TableCell>
                         </TableRow>
                     ))}
@@ -85,27 +100,32 @@ export function FileList() {
                                 <TableCell>
                                     <p className="text-[12px]">{sizeFormatter(size)}</p>
                                 </TableCell>
-                                <TableCell className="text-right">
-                                    <DropdownMenu>
-                                        <DropdownMenuTrigger>
-                                            <DotsThree size={22} />
-                                        </DropdownMenuTrigger>
-                                        <DropdownMenuContent>
-                                            <DropdownMenuLabel>My Account</DropdownMenuLabel>
-                                            <DropdownMenuSeparator />
-                                            <DropdownMenuItem>Profile</DropdownMenuItem>
-                                            <DropdownMenuItem>Billing</DropdownMenuItem>
-                                            <DropdownMenuItem>Team</DropdownMenuItem>
-                                            <DropdownMenuItem>Subscription</DropdownMenuItem>
-                                        </DropdownMenuContent>
-                                    </DropdownMenu>
+                                <TableCell className="text-center">
+                                    <Button className="py-0 px-2" variant={"outline"}>
+                                        {!downloading[name] ? (
+                                            <DownloadSimple
+                                                size={18}
+                                                weight="bold"
+                                                onClick={async () => {
+                                                    const link = await downloadUrl(url, name);
+                                                    const tempLinkElement = document.createElement("a");
+
+                                                    tempLinkElement.download = name;
+                                                    tempLinkElement.href = link as string;
+
+                                                    tempLinkElement.click();
+                                                }}
+                                            />
+                                        ) : (
+                                            <CircleNotch className="animate-spin" weight="bold" />
+                                        )}
+                                    </Button>
                                 </TableCell>
                             </TableRow>
-                        )
+                        );
                     })}
                 </TableBody>
             </Table>
         </>
-
     );
 }

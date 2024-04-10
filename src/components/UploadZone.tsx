@@ -79,7 +79,7 @@ export function UploadZone() {
             <div className="flex flex-col gap-4">
                 <div
                     {...getRootProps()}
-                    className={`border-dashed border-2 ${isDragAccept ? 'border-teal-400 bg-primary-foreground brightness-105' : 'border'} min-h-[60px] rounded-lg cursor-pointer flex items-center justify-center gap-2 transition-all duration-150 w-full p-4`}
+                    className={`border-dashed border-2 min-h-[88px] ${isDragAccept ? 'border-teal-400 bg-primary-foreground brightness-105' : 'border'} min-h-[60px] rounded-lg cursor-pointer flex items-center justify-center gap-2 transition-all duration-150 w-full p-4`}
                 >
                     <Input id="fileUpload"
                         {...getInputProps()}
