@@ -9,7 +9,7 @@ interface ChildrenProps {
     children: ReactNode;
 }
 
-interface FileProps {
+export interface FileProps {
     name: string;
     size: number;
     contentType: string | undefined;
@@ -18,9 +18,10 @@ interface FileProps {
 }
 
 
-interface FileContextType {
+export interface FileContextType {
     files: FileProps[];
     onUploadFile: (file: FileProps) => void;
+    onDeleteFile: (fileName: string) => void;
 }
 const FileContext = createContext<FileContextType | undefined>(undefined);
 
@@ -34,43 +35,52 @@ const FileProvider = ({ children }: ChildrenProps) => {
             try {
                 const res = await listAll(listRef);
                 const localFiles = localStorage.getItem("files") as string;
-    
+
                 if (JSON.parse(localFiles)?.length === res.items.length) {
                     setFiles(JSON.parse(localFiles));
                     return;
                 }
-    
+
                 const promises = res.items.map(async (file) => {
                     const urlPromise = getDownloadURL(ref(storage, `files/${file.name}`));
                     const metadataPromise = getMetadata(file);
                     const [url, metadata] = await Promise.all([urlPromise, metadataPromise]);
-                    return { name: metadata.name, size: metadata.size, contentType: metadata.contentType, customMetadata: metadata.customMetadata, url };
+                    return { name: metadata.name, size: metadata.size, contentType: metadata.contentType, customMetadata: metadata.customMetadata, url, createdAt: metadata.timeCreated };
                 });
-    
-                const filesData = await Promise.all(promises);
-    
-                localStorage.setItem("files", JSON.stringify(filesData));
-                setFiles(filesData);
+
+                const data = await Promise.all(promises)
+                const files = data.sort((a, b) => {
+                    return Date.parse(a.createdAt) - Date.parse(b.createdAt);
+                });
+
+                localStorage.setItem("files", JSON.stringify(files));
+                setFiles(files);
             } catch (error) {
                 console.error(error);
             }
         };
-    
+
         fetchFiles();
     }, []);
-    
+
     const onUploadFile = (file: FileProps) => {
         const updatedFiles = [file, ...files];
         localStorage.setItem('files', JSON.stringify(updatedFiles));
         setFiles(updatedFiles);
     };
-    
+
+    const onDeleteFile = (fileName: string) => {
+        const updatedFiles = [...files.filter(file => file.name !== fileName)];
+        localStorage.setItem('files', JSON.stringify(updatedFiles));
+        setFiles(updatedFiles);
+    };
+
     return (
-        <FileContext.Provider value={{ files, onUploadFile }}>
+        <FileContext.Provider value={{ files, onUploadFile, onDeleteFile }}>
             {children}
         </FileContext.Provider>
     );
-    
+
 };
 
 export { FileContext, FileProvider };

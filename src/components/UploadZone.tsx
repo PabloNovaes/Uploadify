@@ -1,4 +1,4 @@
-import { Upload } from "@phosphor-icons/react";
+import { File, Upload, X } from "@phosphor-icons/react";
 import { UploadTask, getDownloadURL, getMetadata, ref, uploadBytesResumable } from "firebase/storage";
 import { useDropzone } from 'react-dropzone';
 import { toast } from "sonner";
@@ -7,19 +7,58 @@ import { Input } from "./ui/input";
 
 
 import { FileContext } from "@/contexts/filesContext";
-import { useContext, useState } from "react";
+import { useContext, useEffect, useState } from "react";
+import { sizeFormatter } from "./FileList";
 import { Progress } from "./ui/progress";
 
 
 export function UploadZone() {
     const [percent, setpercent] = useState(0)
-    const [task, setTask] = useState<UploadTask>()
+    const [task, setTask] = useState<UploadTask | undefined>()
+    const [currentFile, setCurrentFile] = useState<File | undefined>()
+    const [toastId, setToastId] = useState<String | undefined>()
+
     const context = useContext(FileContext)
 
     const reset = () => {
         setpercent(0)
         setTask(undefined)
+        setCurrentFile(undefined)
     }
+
+    useEffect(() => {
+        if (!task) return
+
+        const emitToastTask = () => {
+            if (task !== undefined && !toastId) return setToastId(currentFile?.name)
+            toast((
+                <div className="grid gap-2 w-full items-center relative">
+                    <div className="grid items-center" style={{ gridTemplateColumns: 'min-content 1fr 50px' }}>
+                        <File className="text-primary mr-3" size={20} />
+                        <div className="text-sm text-primary grid" >
+                            <p className="text-ellipsis overflow-hidden whitespace-nowrap">{currentFile?.name}</p>
+                            <span className="opacity-75 text-xs">{sizeFormatter(Number(currentFile?.size))}</span>
+                        </div>
+                        <div className="flex flex-col gap-2 items-end">
+                            <button className="w-fit rounded-full bg-secondary p-[3px] text-secondary-foreground" onClick={monitoringTask.cancel}>
+                                <X size={14} />
+                            </button>
+                            <span className="text-white text-end text-xs">{percent !== 100 ? String(percent.toFixed(0)).concat("%") : "Concluido"}</span>
+                        </div>
+                    </div>
+                    <Progress className="h-1.5" value={percent} />
+                </div>
+            ), {
+                position: window.innerWidth <= 500 ? "bottom-center" : "bottom-right",
+                id: String(toastId),
+                className: 'bg-primary-foreground',
+            })
+        }
+
+        emitToastTask()
+    }, [task, percent])
+
+
 
     const monitoringTask = {
         upload(file: File) {
@@ -30,25 +69,28 @@ export function UploadZone() {
                 const task = uploadBytesResumable(path, file, {
                     contentType: type
                 })
-
                 setTask(task)
-
                 task.on('state_changed', (snapshot) => {
                     const value = (snapshot.bytesTransferred / snapshot.totalBytes) * 100
                     setpercent(value)
                     if (snapshot.bytesTransferred == snapshot.totalBytes) {
+                        toast.dismiss(currentFile?.name)
                         reset()
-                        toast("Arquivo enviado com sucesso!", {
-                            description: new Date().toLocaleString(),
-                            action: {
-                                label: "Fechar",
-                                onClick: () => { return },
-                            },
+                        toast.success("Arquivo enviado com sucesso!", {
+                            duration: 2000
                         })
                     }
                 },
                     (error) => {
-                        console.log(error);
+                        if (error.code === 'storage/canceled') {
+                            return
+                        } else {
+                            toast.error("Ocorreu um erro inesperado!", {
+                                duration: 2000
+                            })
+                            throw error
+                        }
+
 
                     }, () => {
                         getDownloadURL(task.snapshot.ref).then(async (url) => {
@@ -59,6 +101,11 @@ export function UploadZone() {
 
             }
         },
+        cancel() {
+            task?.cancel()
+            toast.dismiss()
+            reset()
+        }
 
     }
 
@@ -70,7 +117,8 @@ export function UploadZone() {
         isDragReject
     } = useDropzone({
         onDropAccepted: (files) => {
-            monitoringTask.upload(files[0] as File)
+            setCurrentFile(files[0])
+            monitoringTask.upload(files[0])
         }
     });
 
@@ -110,9 +158,11 @@ export function UploadZone() {
                             }
                         </span>
                     )}
-
-
                 </div>
+
+                {/* {task && (
+                   
+                )} */}
             </div>
         </>
     )

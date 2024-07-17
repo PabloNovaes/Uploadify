@@ -5,9 +5,6 @@ import {
 } from "@/components/ui/dialog"
 import { ReactNode } from "react"
 
-// const type = {
-
-// }
 
 export function MediaModal({ fileURL, children, type }:
     {
@@ -17,7 +14,7 @@ export function MediaModal({ fileURL, children, type }:
     }) {
     return (
         <Dialog>
-            <DialogTrigger asChild>
+            <DialogTrigger asChild className="max-[500px]:max-w-[40vw]">
                 {children}
             </DialogTrigger>
             <DialogContent className="max-[500px]:max-w-[90vw] max-vw-[50vw] bg-black flex items-center">
